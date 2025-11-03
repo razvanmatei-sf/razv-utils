@@ -1,5 +1,5 @@
 /**
- * Dynamic Prompt List - Show only the number of widgets specified by inputcount
+ * Dynamic Prompt List - Hide widgets beyond inputcount using computeSize
  */
 
 import { app } from "../../../scripts/app.js";
@@ -16,85 +16,50 @@ app.registerExtension({
         nodeType.prototype.onNodeCreated = function () {
             const r = onNodeCreated ? onNodeCreated.apply(this, arguments) : undefined;
 
-            // Store all 51 widgets (inputcount + prompt_1 to prompt_50)
-            this._allWidgets = [...this.widgets];
+            const self = this;
 
-            // Function to rebuild widget list based on inputcount
-            const updateVisibleWidgets = () => {
-                if (!this._allWidgets) return;
+            // Override computeSize to hide widgets beyond inputcount
+            const originalComputeSize = this.computeSize;
+            this.computeSize = function(out) {
+                const inputcountWidget = this.widgets?.find(w => w.name === "inputcount");
+                const targetCount = inputcountWidget ? inputcountWidget.value : 5;
 
-                const inputcountWidget = this._allWidgets.find(w => w.name === "inputcount");
-                if (!inputcountWidget) return;
-
-                const targetCount = inputcountWidget.value;
-
-                // Build new widgets array with only visible widgets
-                const newWidgets = [inputcountWidget];
-
-                // Add only the widgets we want to show (prompt_1 to prompt_N)
-                for (let i = 1; i <= Math.min(targetCount, 50); i++) {
-                    const widget = this._allWidgets.find(w => w.name === `prompt_${i}`);
-                    if (widget) {
-                        newWidgets.push(widget);
+                // Hide widgets beyond targetCount by setting computeSize to 0
+                this.widgets.forEach(widget => {
+                    if (widget.name && widget.name.startsWith("prompt_")) {
+                        const promptNum = parseInt(widget.name.split("_")[1]);
+                        if (promptNum > targetCount) {
+                            // Hide this widget
+                            widget.computeSize = () => [0, -4];
+                            widget.hidden = true;
+                        } else {
+                            // Show this widget
+                            delete widget.computeSize;
+                            widget.hidden = false;
+                        }
                     }
-                }
+                });
 
-                // Replace the widgets array completely
-                this.widgets = newWidgets;
-
-                // Recompute size and redraw
-                const size = this.computeSize();
-                this.setSize(size);
-                this.setDirtyCanvas(true, true);
+                // Call original computeSize
+                return originalComputeSize ? originalComputeSize.call(this, out) : [200, 100];
             };
 
             // Hook into inputcount changes
             const inputcountWidget = this.widgets.find(w => w.name === "inputcount");
             if (inputcountWidget) {
                 const originalCallback = inputcountWidget.callback;
-                const self = this;
                 inputcountWidget.callback = function(value) {
                     if (originalCallback) {
                         originalCallback.apply(this, arguments);
                     }
-                    updateVisibleWidgets.call(self);
+                    // Force recompute
+                    self.setSize(self.computeSize());
+                    self.setDirtyCanvas(true, true);
                 };
             }
 
-            // Run immediately to prevent rendering all widgets
-            updateVisibleWidgets();
-
-            // Also run after a short delay to catch workflow loads
-            setTimeout(() => updateVisibleWidgets(), 1);
-            setTimeout(() => updateVisibleWidgets(), 50);
-            setTimeout(() => updateVisibleWidgets(), 200);
-
-            return r;
-        };
-
-        // Also hook into onConfigure to handle workflow loading
-        const onConfigure = nodeType.prototype.onConfigure;
-        nodeType.prototype.onConfigure = function(info) {
-            const r = onConfigure ? onConfigure.apply(this, arguments) : undefined;
-
-            // Update widgets after workflow load
-            if (this._allWidgets) {
-                const inputcountWidget = this._allWidgets.find(w => w.name === "inputcount");
-                if (inputcountWidget) {
-                    const targetCount = inputcountWidget.value;
-                    const newWidgets = [inputcountWidget];
-
-                    for (let i = 1; i <= Math.min(targetCount, 50); i++) {
-                        const widget = this._allWidgets.find(w => w.name === `prompt_${i}`);
-                        if (widget) {
-                            newWidgets.push(widget);
-                        }
-                    }
-
-                    this.widgets = newWidgets;
-                    this.setSize(this.computeSize());
-                }
-            }
+            // Initial size calculation
+            this.setSize(this.computeSize());
 
             return r;
         };

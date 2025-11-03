@@ -14,20 +14,20 @@ class DynamicPromptList:
         return {
             "required": {
                 "inputcount": ("INT", {"default": 5, "min": 2, "max": 50, "step": 1}),
-                "prompt_1": ("STRING", {"multiline": True, "default": "prompt"}),
-                "prompt_2": ("STRING", {"multiline": True, "default": "prompt"}),
+                "prompt_1": ("STRING", {"multiline": True, "default": ""}),
+                "prompt_2": ("STRING", {"multiline": True, "default": ""}),
             },
         }
 
     RETURN_TYPES = ("STRING",)
-    RETURN_NAMES = ("prompt_list",)
+    RETURN_NAMES = ("text",)
     FUNCTION = "create_prompt_list"
     CATEGORY = "Serhii/Utils"
 
     DESCRIPTION = """
-Creates a comma-separated list of prompts with dynamic text box count.
+Creates a comma-separated list from dynamic text boxes.
 Set the number of text boxes with the **inputcount** parameter
-and click "Update inputs" button to add/remove prompt text boxes.
+and click "Update inputs" button to add/remove text boxes.
 """
 
     def create_prompt_list(self, inputcount, **kwargs):
@@ -35,21 +35,21 @@ and click "Update inputs" button to add/remove prompt text boxes.
         Creates a comma-separated string from dynamic text boxes.
 
         Args:
-            inputcount: Number of prompt text boxes
-            **kwargs: Dynamic prompt values (prompt_1, prompt_2, etc.)
+            inputcount: Number of text boxes
+            **kwargs: Dynamic text values (prompt_1, prompt_2, etc.)
 
         Returns:
-            Tuple containing comma-separated string of prompts
+            Tuple containing comma-separated string
         """
         prompts = []
 
-        # Collect all prompts from dynamic text boxes
+        # Collect all text from dynamic boxes
         for i in range(1, inputcount + 1):
             prompt_key = f"prompt_{i}"
             prompt = kwargs.get(prompt_key, "")
 
-            # Add non-empty prompts
-            if prompt and prompt.strip() and prompt.strip() != "prompt":
+            # Add non-empty text
+            if prompt and prompt.strip():
                 prompts.append(prompt.strip())
 
         # Return as comma-separated string

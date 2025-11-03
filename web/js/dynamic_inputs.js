@@ -1,6 +1,6 @@
 /**
  * Dynamic Text Boxes Extension for Dynamic Prompt List Node
- * Manages existing widgets from INPUT_TYPES, adds/removes as needed
+ * Manages text box widgets based on inputcount
  */
 
 import { app } from "../../../scripts/app.js";
@@ -32,6 +32,8 @@ function updatePrompts(node) {
     );
     const currentCount = currentPrompts.length;
 
+    console.log(`Dynamic Prompt List: Current=${currentCount}, Target=${targetCount}`);
+
     if (targetCount === currentCount) return;
 
     // Remove excess widgets
@@ -50,32 +52,39 @@ function updatePrompts(node) {
             }
         }
     }
-    // Add new widgets (matching INPUT_TYPES format)
+    // Add new widgets
     else {
-        // Find the button widget position
+        // Find the button widget position to insert before it
         const buttonIndex = node.widgets.findIndex(w => w.type === "button");
 
         for (let i = currentCount + 1; i <= targetCount; i++) {
-            const newWidget = node.addCustomWidget({
-                name: `prompt_${i}`,
-                type: "customtext",
-                value: "",
-                callback: () => {},
-                options: { multiline: true }
-            });
+            // Add text widget with multiline support
+            const widget = node.addWidget(
+                "text",
+                `prompt_${i}`,
+                "",
+                () => {},
+                {
+                    multiline: true,
+                    serialize: true
+                }
+            );
 
-            // Move new widget before the button
-            if (buttonIndex > -1 && newWidget) {
-                const widgetIndex = node.widgets.indexOf(newWidget);
-                if (widgetIndex > buttonIndex) {
-                    node.widgets.splice(widgetIndex, 1);
-                    node.widgets.splice(buttonIndex, 0, newWidget);
+            // Move widget before the button if button exists
+            if (buttonIndex > -1 && widget) {
+                const currentIndex = node.widgets.indexOf(widget);
+                if (currentIndex !== -1 && currentIndex > buttonIndex) {
+                    // Remove from current position
+                    node.widgets.splice(currentIndex, 1);
+                    // Insert before button
+                    node.widgets.splice(buttonIndex, 0, widget);
                 }
             }
         }
     }
 
-    // Resize node
-    node.setSize(node.computeSize());
+    // Resize node to fit all widgets
+    const newSize = node.computeSize();
+    node.setSize(newSize);
     node.setDirtyCanvas(true, true);
 }

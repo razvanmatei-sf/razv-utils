@@ -11,15 +11,15 @@ class DynamicPromptList:
 
     @classmethod
     def INPUT_TYPES(cls):
-        # Generate 10 prompts - reasonable balance between flexibility and UI size
+        # Generate all 50 possible prompts in INPUT_TYPES
         inputs = {
             "required": {
-                "inputcount": ("INT", {"default": 5, "min": 2, "max": 10, "step": 1}),
+                "inputcount": ("INT", {"default": 5, "min": 2, "max": 50, "step": 1}),
             },
         }
 
-        # Add 10 prompts to INPUT_TYPES so ComfyUI creates proper text boxes
-        for i in range(1, 11):
+        # Add all 50 prompts to INPUT_TYPES so ComfyUI creates proper text boxes
+        for i in range(1, 51):
             inputs["required"][f"prompt_{i}"] = ("STRING", {"multiline": True, "default": ""})
 
         return inputs
@@ -31,8 +31,8 @@ class DynamicPromptList:
 
     DESCRIPTION = """
 Creates a comma-separated list from text boxes.
-Set the number of text boxes to use with the **inputcount** parameter (2-10).
-All 10 text boxes are always visible, only the first 'inputcount' boxes will be processed.
+Set the number of text boxes with the **inputcount** parameter (2-50).
+Only the first 'inputcount' boxes will be visible.
 """
 
     def create_prompt_list(self, inputcount, **kwargs):

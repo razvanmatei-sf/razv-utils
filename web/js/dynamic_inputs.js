@@ -21,6 +21,8 @@ app.registerExtension({
 
             // Function to rebuild widget list based on inputcount
             const updateVisibleWidgets = () => {
+                if (!this._allWidgets) return;
+
                 const inputcountWidget = this._allWidgets.find(w => w.name === "inputcount");
                 if (!inputcountWidget) return;
 
@@ -41,7 +43,8 @@ app.registerExtension({
                 this.widgets = newWidgets;
 
                 // Recompute size and redraw
-                this.setSize(this.computeSize());
+                const size = this.computeSize();
+                this.setSize(size);
                 this.setDirtyCanvas(true, true);
             };
 
@@ -58,8 +61,40 @@ app.registerExtension({
                 };
             }
 
-            // Initial update on node load
+            // Run immediately to prevent rendering all widgets
+            updateVisibleWidgets();
+
+            // Also run after a short delay to catch workflow loads
+            setTimeout(() => updateVisibleWidgets(), 1);
             setTimeout(() => updateVisibleWidgets(), 50);
+            setTimeout(() => updateVisibleWidgets(), 200);
+
+            return r;
+        };
+
+        // Also hook into onConfigure to handle workflow loading
+        const onConfigure = nodeType.prototype.onConfigure;
+        nodeType.prototype.onConfigure = function(info) {
+            const r = onConfigure ? onConfigure.apply(this, arguments) : undefined;
+
+            // Update widgets after workflow load
+            if (this._allWidgets) {
+                const inputcountWidget = this._allWidgets.find(w => w.name === "inputcount");
+                if (inputcountWidget) {
+                    const targetCount = inputcountWidget.value;
+                    const newWidgets = [inputcountWidget];
+
+                    for (let i = 1; i <= Math.min(targetCount, 50); i++) {
+                        const widget = this._allWidgets.find(w => w.name === `prompt_${i}`);
+                        if (widget) {
+                            newWidgets.push(widget);
+                        }
+                    }
+
+                    this.widgets = newWidgets;
+                    this.setSize(this.computeSize());
+                }
+            }
 
             return r;
         };

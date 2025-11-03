@@ -16,35 +16,27 @@ app.registerExtension({
         nodeType.prototype.onNodeCreated = function () {
             const r = onNodeCreated ? onNodeCreated.apply(this, arguments) : undefined;
 
-            // Store original widgets
-            this._allPromptWidgets = this.widgets.filter(w =>
-                w.name && w.name.startsWith("prompt_")
-            );
+            // Store all widgets on first creation
+            if (!this._allWidgets) {
+                this._allWidgets = [...this.widgets];
+            }
 
-            // Function to update visible widgets
+            // Function to rebuild widget list based on inputcount
             const updateVisibleWidgets = () => {
-                const inputcountWidget = this.widgets.find(w => w.name === "inputcount");
+                const inputcountWidget = this._allWidgets.find(w => w.name === "inputcount");
                 if (!inputcountWidget) return;
 
                 const targetCount = inputcountWidget.value;
 
-                // Hide/show widgets by setting their options
-                this._allPromptWidgets.forEach(widget => {
-                    const promptNum = parseInt(widget.name.split("_")[1]);
+                // Rebuild widgets array: inputcount + prompt_1 to prompt_N
+                this.widgets = [inputcountWidget];
 
-                    if (promptNum > targetCount) {
-                        // Hide widget
-                        widget.options = widget.options || {};
-                        widget.options.hidden = true;
-                        widget.computeSize = function() { return [0, -4]; }; // Negative height to hide
-                    } else {
-                        // Show widget
-                        if (widget.options) {
-                            delete widget.options.hidden;
-                        }
-                        delete widget.computeSize;
+                for (let i = 1; i <= targetCount; i++) {
+                    const widget = this._allWidgets.find(w => w.name === `prompt_${i}`);
+                    if (widget) {
+                        this.widgets.push(widget);
                     }
-                });
+                }
 
                 // Force node to recompute size
                 this.setSize(this.computeSize());

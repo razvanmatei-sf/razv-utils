@@ -1,6 +1,6 @@
 /**
- * Dynamic Widgets Extension for Dynamic Prompt List Node
- * Adds dynamic text box widgets functionality with "Update inputs" button
+ * Dynamic Inputs Extension for Dynamic Prompt List Node
+ * Manages dynamic STRING inputs in INPUT_TYPES
  */
 
 import { app } from "../../../scripts/app.js";
@@ -8,70 +8,48 @@ import { app } from "../../../scripts/app.js";
 app.registerExtension({
     name: "Serhii.DynamicPromptList",
 
-    async beforeRegisterNodeDef(nodeType, nodeData, app) {
-        // Only apply to Dynamic Prompt List node
-        if (nodeData.name !== "Dynamic Prompt List") {
+    async nodeCreated(node) {
+        if (node.comfyClass !== "Dynamic Prompt List") {
             return;
         }
 
-        const originalOnNodeCreated = nodeType.prototype.onNodeCreated || function() {};
+        // Add "Update inputs" button
+        const updateButton = node.addWidget("button", "Update inputs", null, () => {
+            const inputcountWidget = node.widgets.find(w => w.name === "inputcount");
+            if (!inputcountWidget) return;
 
-        nodeType.prototype.onNodeCreated = function() {
-            originalOnNodeCreated.apply(this, arguments);
+            const targetCount = inputcountWidget.value;
+            const currentPrompts = node.widgets.filter(w => w.name && w.name.startsWith("prompt_"));
+            const currentCount = currentPrompts.length;
 
-            // Add "Update inputs" button
-            this.addWidget("button", "Update inputs", null, () => {
-                if (!this.widgets) {
-                    this.widgets = [];
-                }
+            if (targetCount === currentCount) return;
 
-                // Get the target number of text boxes from the inputcount widget
-                const inputcountWidget = this.widgets.find(w => w.name === "inputcount");
-                if (!inputcountWidget) return;
-
-                const target_number_of_prompts = inputcountWidget.value;
-
-                // Count current prompt widgets (excluding inputcount and the button itself)
-                const current_prompts = this.widgets.filter(w =>
-                    w.name && w.name.startsWith("prompt_")
-                ).length;
-
-                // If already at target, do nothing
-                if (target_number_of_prompts === current_prompts) return;
-
-                // Remove excess widgets
-                if (target_number_of_prompts < current_prompts) {
-                    const widgets_to_remove = current_prompts - target_number_of_prompts;
-                    for (let i = 0; i < widgets_to_remove; i++) {
-                        // Find and remove the last prompt_ widget
-                        const promptWidgets = this.widgets.filter(w =>
-                            w.name && w.name.startsWith("prompt_")
-                        );
-                        if (promptWidgets.length > 0) {
-                            const lastPrompt = promptWidgets[promptWidgets.length - 1];
-                            const index = this.widgets.indexOf(lastPrompt);
-                            if (index > -1) {
-                                this.widgets.splice(index, 1);
-                            }
+            // Remove excess widgets
+            if (targetCount < currentCount) {
+                const toRemove = currentCount - targetCount;
+                for (let i = 0; i < toRemove; i++) {
+                    const promptWidgets = node.widgets.filter(w => w.name && w.name.startsWith("prompt_"));
+                    if (promptWidgets.length > 0) {
+                        const lastWidget = promptWidgets[promptWidgets.length - 1];
+                        const index = node.widgets.indexOf(lastWidget);
+                        if (index > -1) {
+                            node.widgets.splice(index, 1);
                         }
                     }
                 }
-                // Add new widgets
-                else {
-                    for (let i = current_prompts + 1; i <= target_number_of_prompts; i++) {
-                        this.addWidget(
-                            "text",
-                            `prompt_${i}`,
-                            "prompt",
-                            (value) => {},
-                            {}
-                        );
-                    }
+            }
+            // Add new widgets
+            else {
+                for (let i = currentCount + 1; i <= targetCount; i++) {
+                    node.addWidget("string", `prompt_${i}`, "prompt", () => {}, {
+                        multiline: true
+                    });
                 }
+            }
 
-                // Force node to resize
-                this.setSize(this.computeSize());
-            });
-        }
+            // Resize node to fit new widgets
+            node.setSize(node.computeSize());
+            node.setDirtyCanvas(true);
+        });
     }
 });

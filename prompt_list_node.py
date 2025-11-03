@@ -1,11 +1,11 @@
 """
 Dynamic Prompt List Node
-A ComfyUI custom node with dynamic widget count for managing prompt lists.
+A ComfyUI custom node with dynamic text box count for managing prompt lists.
 """
 
 class DynamicPromptList:
     """
-    Dynamic prompt list node with configurable number of text box widgets.
+    Dynamic prompt list node with configurable number of text boxes.
     Returns a comma-separated string of all prompts.
     """
 
@@ -14,6 +14,8 @@ class DynamicPromptList:
         return {
             "required": {
                 "inputcount": ("INT", {"default": 5, "min": 2, "max": 50, "step": 1}),
+                "prompt_1": ("STRING", {"multiline": True, "default": "prompt"}),
+                "prompt_2": ("STRING", {"multiline": True, "default": "prompt"}),
             },
         }
 
@@ -30,7 +32,7 @@ and click "Update inputs" button to add/remove prompt text boxes.
 
     def create_prompt_list(self, inputcount, **kwargs):
         """
-        Creates a comma-separated string from dynamic text box widgets.
+        Creates a comma-separated string from dynamic text boxes.
 
         Args:
             inputcount: Number of prompt text boxes
@@ -41,13 +43,13 @@ and click "Update inputs" button to add/remove prompt text boxes.
         """
         prompts = []
 
-        # Collect all prompts from dynamic widgets
+        # Collect all prompts from dynamic text boxes
         for i in range(1, inputcount + 1):
             prompt_key = f"prompt_{i}"
             prompt = kwargs.get(prompt_key, "")
 
-            # Add all prompts (including empty ones will just be empty in list)
-            if prompt and prompt.strip():
+            # Add non-empty prompts
+            if prompt and prompt.strip() and prompt.strip() != "prompt":
                 prompts.append(prompt.strip())
 
         # Return as comma-separated string
@@ -60,5 +62,5 @@ NODE_CLASS_MAPPINGS = {
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
-    "Dynamic Prompt List": "📝 Dynamic Prompt List",
+    "Dynamic Prompt List": "Dynamic Prompt List",
 }

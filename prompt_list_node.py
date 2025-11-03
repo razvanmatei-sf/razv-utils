@@ -11,11 +11,14 @@ class DynamicPromptList:
 
     @classmethod
     def INPUT_TYPES(cls):
-        # Start with only inputcount - JavaScript will add text boxes dynamically
         return {
             "required": {
                 "inputcount": ("INT", {"default": 5, "min": 2, "max": 50, "step": 1}),
             },
+            "hidden": {
+                "prompt_1": "STRING",
+                "prompt_2": "STRING",
+            }
         }
 
     RETURN_TYPES = ("STRING",)

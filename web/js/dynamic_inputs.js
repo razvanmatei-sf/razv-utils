@@ -1,6 +1,6 @@
 /**
  * Dynamic Text Boxes Extension for Dynamic Prompt List Node
- * Creates text box widgets dynamically based on inputcount
+ * Creates text box widgets dynamically (no input connections)
  */
 
 import { app } from "../../../scripts/app.js";
@@ -13,21 +13,21 @@ app.registerExtension({
             return;
         }
 
-        // Initialize with default number of text boxes
+        // Create initial text boxes
         const inputcountWidget = node.widgets.find(w => w.name === "inputcount");
-        if (inputcountWidget) {
-            const initialCount = inputcountWidget.value || 5;
-            for (let i = 1; i <= initialCount; i++) {
-                node.addWidget("text", `prompt_${i}`, "", () => {}, {
-                    multiline: true,
-                    serialize: true
-                });
-            }
+        const initialCount = inputcountWidget ? inputcountWidget.value : 5;
+
+        // Add initial text box widgets
+        for (let i = 1; i <= initialCount; i++) {
+            node.addWidget("text", `prompt_${i}`, "", () => {}, {
+                multiline: true,
+                serialize: true
+            });
         }
 
-        // Add "Update inputs" button
+        // Add Update inputs button
         node.addWidget("button", "Update inputs", null, () => {
-            updateTextBoxes(node);
+            updatePrompts(node);
         });
 
         // Initial resize
@@ -35,26 +35,26 @@ app.registerExtension({
     }
 });
 
-function updateTextBoxes(node) {
+function updatePrompts(node) {
     const inputcountWidget = node.widgets.find(w => w.name === "inputcount");
     if (!inputcountWidget) return;
 
     const targetCount = inputcountWidget.value;
 
-    // Count current prompt text boxes (not button or inputcount)
+    // Count current prompt text boxes (exclude inputcount and button)
     const currentPrompts = node.widgets.filter(w =>
-        w.name && w.name.startsWith("prompt_") && w.type !== "button"
+        w.name && w.name.startsWith("prompt_") && w.type === "text"
     );
     const currentCount = currentPrompts.length;
 
     if (targetCount === currentCount) return;
 
-    // Remove excess text boxes
+    // Remove excess widgets
     if (targetCount < currentCount) {
         const toRemove = currentCount - targetCount;
         for (let i = 0; i < toRemove; i++) {
             const promptWidgets = node.widgets.filter(w =>
-                w.name && w.name.startsWith("prompt_") && w.type !== "button"
+                w.name && w.name.startsWith("prompt_") && w.type === "text"
             );
             if (promptWidgets.length > 0) {
                 const lastWidget = promptWidgets[promptWidgets.length - 1];
@@ -65,7 +65,7 @@ function updateTextBoxes(node) {
             }
         }
     }
-    // Add new text boxes
+    // Add new widgets
     else {
         for (let i = currentCount + 1; i <= targetCount; i++) {
             node.addWidget("text", `prompt_${i}`, "", () => {}, {
@@ -75,7 +75,7 @@ function updateTextBoxes(node) {
         }
     }
 
-    // Resize node to fit
+    // Resize node
     node.setSize(node.computeSize());
     node.setDirtyCanvas(true, true);
 }

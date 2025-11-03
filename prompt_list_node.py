@@ -1,7 +1,6 @@
 """
 Dynamic Prompt List Node
 A ComfyUI custom node with dynamic text box count for managing prompt lists.
-Based on CR Simple Prompt List but with dynamic input count.
 """
 
 class DynamicPromptList:
@@ -12,17 +11,18 @@ class DynamicPromptList:
 
     @classmethod
     def INPUT_TYPES(cls):
-        # Define prompts directly in required, like CR Simple Prompt List
-        return {
+        # Generate all 50 possible prompts in INPUT_TYPES
+        inputs = {
             "required": {
                 "inputcount": ("INT", {"default": 5, "min": 2, "max": 50, "step": 1}),
-                "prompt_1": ("STRING", {"multiline": True, "default": ""}),
-                "prompt_2": ("STRING", {"multiline": True, "default": ""}),
-                "prompt_3": ("STRING", {"multiline": True, "default": ""}),
-                "prompt_4": ("STRING", {"multiline": True, "default": ""}),
-                "prompt_5": ("STRING", {"multiline": True, "default": ""}),
             },
         }
+
+        # Add all 50 prompts to INPUT_TYPES so ComfyUI creates proper text boxes
+        for i in range(1, 51):
+            inputs["required"][f"prompt_{i}"] = ("STRING", {"multiline": True, "default": ""})
+
+        return inputs
 
     RETURN_TYPES = ("STRING",)
     RETURN_NAMES = ("text",)
@@ -30,25 +30,25 @@ class DynamicPromptList:
     CATEGORY = "Serhii/Utils"
 
     DESCRIPTION = """
-Creates a comma-separated list from dynamic text boxes.
-Set the number of text boxes with the **inputcount** parameter
-and click "Update inputs" button to add/remove text boxes.
+Creates a comma-separated list from text boxes.
+Set the number of text boxes with the **inputcount** parameter.
+All 50 text boxes are available, only the first 'inputcount' boxes will be processed.
 """
 
     def create_prompt_list(self, inputcount, **kwargs):
         """
-        Creates a comma-separated string from dynamic text boxes.
+        Creates a comma-separated string from text boxes.
 
         Args:
-            inputcount: Number of text boxes
-            **kwargs: Dynamic text values (prompt_1, prompt_2, etc.)
+            inputcount: Number of text boxes to process
+            **kwargs: Text values (prompt_1, prompt_2, etc.)
 
         Returns:
             Tuple containing comma-separated string
         """
         prompts = []
 
-        # Collect all text from text boxes
+        # Only process the first 'inputcount' prompts
         for i in range(1, inputcount + 1):
             prompt_key = f"prompt_{i}"
             prompt = kwargs.get(prompt_key, "")

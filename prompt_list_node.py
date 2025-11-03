@@ -1,12 +1,12 @@
 """
 Dynamic Prompt List Node
-A ComfyUI custom node with dynamic input count for managing prompt lists.
+A ComfyUI custom node with dynamic widget count for managing prompt lists.
 """
 
 class DynamicPromptList:
     """
-    Dynamic prompt list node with configurable number of inputs.
-    Allows you to create a list of prompts with adjustable input count.
+    Dynamic prompt list node with configurable number of text box widgets.
+    Returns a comma-separated string of all prompts.
     """
 
     @classmethod
@@ -14,10 +14,6 @@ class DynamicPromptList:
         return {
             "required": {
                 "inputcount": ("INT", {"default": 5, "min": 2, "max": 50, "step": 1}),
-                "prompt_1": ("STRING", {"multiline": True, "default": "prompt"}),
-            },
-            "optional": {
-                "prompt_2": ("STRING", {"multiline": True, "default": "prompt"}),
             },
         }
 
@@ -27,35 +23,35 @@ class DynamicPromptList:
     CATEGORY = "Serhii/Utils"
 
     DESCRIPTION = """
-Creates a list of prompts with dynamic input count.
-Set the number of inputs with the **inputcount** parameter
-and click "Update inputs" button to add/remove prompt fields.
+Creates a comma-separated list of prompts with dynamic text box count.
+Set the number of text boxes with the **inputcount** parameter
+and click "Update inputs" button to add/remove prompt text boxes.
 """
 
     def create_prompt_list(self, inputcount, **kwargs):
         """
-        Creates a list of prompts from dynamic inputs.
+        Creates a comma-separated string from dynamic text box widgets.
 
         Args:
-            inputcount: Number of prompt inputs
-            **kwargs: Dynamic prompt inputs (prompt_1, prompt_2, etc.)
+            inputcount: Number of prompt text boxes
+            **kwargs: Dynamic prompt values (prompt_1, prompt_2, etc.)
 
         Returns:
-            Tuple containing the list of prompts
+            Tuple containing comma-separated string of prompts
         """
         prompts = []
 
-        # Collect all prompts from dynamic inputs
+        # Collect all prompts from dynamic widgets
         for i in range(1, inputcount + 1):
             prompt_key = f"prompt_{i}"
             prompt = kwargs.get(prompt_key, "")
 
-            # Only add non-empty prompts
+            # Add all prompts (including empty ones will just be empty in list)
             if prompt and prompt.strip():
                 prompts.append(prompt.strip())
 
-        # Return as a list (can be used with other nodes)
-        return (prompts,)
+        # Return as comma-separated string
+        return (",".join(prompts),)
 
 
 # Node registration

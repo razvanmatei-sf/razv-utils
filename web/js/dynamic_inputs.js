@@ -1,5 +1,5 @@
 /**
- * Dynamic Prompt List - Hide/Show Widgets Based on inputcount
+ * Dynamic Prompt List - Show only the number of widgets specified by inputcount
  */
 
 import { app } from "../../../scripts/app.js";
@@ -7,55 +7,66 @@ import { app } from "../../../scripts/app.js";
 app.registerExtension({
     name: "Serhii.DynamicPromptList",
 
-    async nodeCreated(node) {
-        if (node.comfyClass !== "Dynamic Prompt List") {
+    async beforeRegisterNodeDef(nodeType, nodeData, app) {
+        if (nodeData.name !== "Dynamic Prompt List") {
             return;
         }
 
-        // Function to update widget visibility
-        const updateVisibility = () => {
-            const inputcountWidget = node.widgets.find(w => w.name === "inputcount");
-            if (!inputcountWidget) return;
+        const onNodeCreated = nodeType.prototype.onNodeCreated;
+        nodeType.prototype.onNodeCreated = function () {
+            const r = onNodeCreated ? onNodeCreated.apply(this, arguments) : undefined;
 
-            const targetCount = inputcountWidget.value;
-
-            // Find all prompt widgets
-            const promptWidgets = node.widgets.filter(w =>
-                w.name && w.name.startsWith("prompt_") && w.type !== "button"
+            // Store original widgets
+            this._allPromptWidgets = this.widgets.filter(w =>
+                w.name && w.name.startsWith("prompt_")
             );
 
-            // Hide/show widgets based on inputcount
-            promptWidgets.forEach((widget, index) => {
-                const promptNum = parseInt(widget.name.split("_")[1]);
+            // Function to update visible widgets
+            const updateVisibleWidgets = () => {
+                const inputcountWidget = this.widgets.find(w => w.name === "inputcount");
+                if (!inputcountWidget) return;
 
-                if (promptNum <= targetCount) {
-                    widget.type = "text"; // Show
-                    delete widget.computeSize;
-                    delete widget.hidden;
-                } else {
-                    // Hide by making it take no space
-                    widget.type = "hidden";
-                    widget.computeSize = () => [0, 0];
-                }
-            });
+                const targetCount = inputcountWidget.value;
 
-            // Resize node
-            const newSize = node.computeSize();
-            node.setSize(newSize);
-            node.setDirtyCanvas(true, true);
-        };
+                // Hide/show widgets by setting their options
+                this._allPromptWidgets.forEach(widget => {
+                    const promptNum = parseInt(widget.name.split("_")[1]);
 
-        // Watch for inputcount changes
-        const inputcountWidget = node.widgets.find(w => w.name === "inputcount");
-        if (inputcountWidget) {
-            const originalCallback = inputcountWidget.callback;
-            inputcountWidget.callback = function() {
-                if (originalCallback) originalCallback.apply(this, arguments);
-                updateVisibility();
+                    if (promptNum > targetCount) {
+                        // Hide widget
+                        widget.options = widget.options || {};
+                        widget.options.hidden = true;
+                        widget.computeSize = function() { return [0, -4]; }; // Negative height to hide
+                    } else {
+                        // Show widget
+                        if (widget.options) {
+                            delete widget.options.hidden;
+                        }
+                        delete widget.computeSize;
+                    }
+                });
+
+                // Force node to recompute size
+                this.setSize(this.computeSize());
+                this.setDirtyCanvas(true, true);
             };
-        }
 
-        // Initial visibility update
-        setTimeout(() => updateVisibility(), 100);
+            // Hook into inputcount changes
+            const inputcountWidget = this.widgets.find(w => w.name === "inputcount");
+            if (inputcountWidget) {
+                const originalCallback = inputcountWidget.callback;
+                inputcountWidget.callback = function(value) {
+                    if (originalCallback) {
+                        originalCallback.apply(this, arguments);
+                    }
+                    updateVisibleWidgets();
+                };
+            }
+
+            // Initial update
+            setTimeout(() => updateVisibleWidgets(), 100);
+
+            return r;
+        };
     }
 });

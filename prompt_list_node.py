@@ -1,6 +1,7 @@
 """
 Dynamic Prompt List Node
 A ComfyUI custom node with dynamic text box count for managing prompt lists.
+Based on CR Simple Prompt List but with dynamic input count.
 """
 
 class DynamicPromptList:
@@ -11,14 +12,16 @@ class DynamicPromptList:
 
     @classmethod
     def INPUT_TYPES(cls):
+        # Define prompts directly in required, like CR Simple Prompt List
         return {
             "required": {
                 "inputcount": ("INT", {"default": 5, "min": 2, "max": 50, "step": 1}),
+                "prompt_1": ("STRING", {"multiline": True, "default": ""}),
+                "prompt_2": ("STRING", {"multiline": True, "default": ""}),
+                "prompt_3": ("STRING", {"multiline": True, "default": ""}),
+                "prompt_4": ("STRING", {"multiline": True, "default": ""}),
+                "prompt_5": ("STRING", {"multiline": True, "default": ""}),
             },
-            "hidden": {
-                "prompt_1": "STRING",
-                "prompt_2": "STRING",
-            }
         }
 
     RETURN_TYPES = ("STRING",)
@@ -45,7 +48,7 @@ and click "Update inputs" button to add/remove text boxes.
         """
         prompts = []
 
-        # Collect all text from dynamic boxes
+        # Collect all text from text boxes
         for i in range(1, inputcount + 1):
             prompt_key = f"prompt_{i}"
             prompt = kwargs.get(prompt_key, "")

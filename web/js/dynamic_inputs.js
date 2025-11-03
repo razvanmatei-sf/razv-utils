@@ -1,6 +1,6 @@
 /**
  * Dynamic Text Boxes Extension for Dynamic Prompt List Node
- * Creates text box widgets dynamically (no input connections)
+ * Manages existing widgets from INPUT_TYPES, adds/removes as needed
  */
 
 import { app } from "../../../scripts/app.js";
@@ -13,25 +13,10 @@ app.registerExtension({
             return;
         }
 
-        // Create initial text boxes
-        const inputcountWidget = node.widgets.find(w => w.name === "inputcount");
-        const initialCount = inputcountWidget ? inputcountWidget.value : 5;
-
-        // Add initial text box widgets
-        for (let i = 1; i <= initialCount; i++) {
-            node.addWidget("text", `prompt_${i}`, "", () => {}, {
-                multiline: true,
-                serialize: true
-            });
-        }
-
-        // Add Update inputs button
+        // Add Update inputs button after existing widgets
         node.addWidget("button", "Update inputs", null, () => {
             updatePrompts(node);
         });
-
-        // Initial resize
-        node.setSize(node.computeSize());
     }
 });
 
@@ -43,7 +28,7 @@ function updatePrompts(node) {
 
     // Count current prompt text boxes (exclude inputcount and button)
     const currentPrompts = node.widgets.filter(w =>
-        w.name && w.name.startsWith("prompt_") && w.type === "text"
+        w.name && w.name.startsWith("prompt_") && w.type !== "button"
     );
     const currentCount = currentPrompts.length;
 
@@ -54,7 +39,7 @@ function updatePrompts(node) {
         const toRemove = currentCount - targetCount;
         for (let i = 0; i < toRemove; i++) {
             const promptWidgets = node.widgets.filter(w =>
-                w.name && w.name.startsWith("prompt_") && w.type === "text"
+                w.name && w.name.startsWith("prompt_") && w.type !== "button"
             );
             if (promptWidgets.length > 0) {
                 const lastWidget = promptWidgets[promptWidgets.length - 1];
@@ -65,13 +50,28 @@ function updatePrompts(node) {
             }
         }
     }
-    // Add new widgets
+    // Add new widgets (matching INPUT_TYPES format)
     else {
+        // Find the button widget position
+        const buttonIndex = node.widgets.findIndex(w => w.type === "button");
+
         for (let i = currentCount + 1; i <= targetCount; i++) {
-            node.addWidget("text", `prompt_${i}`, "", () => {}, {
-                multiline: true,
-                serialize: true
+            const newWidget = node.addCustomWidget({
+                name: `prompt_${i}`,
+                type: "customtext",
+                value: "",
+                callback: () => {},
+                options: { multiline: true }
             });
+
+            // Move new widget before the button
+            if (buttonIndex > -1 && newWidget) {
+                const widgetIndex = node.widgets.indexOf(newWidget);
+                if (widgetIndex > buttonIndex) {
+                    node.widgets.splice(widgetIndex, 1);
+                    node.widgets.splice(buttonIndex, 0, newWidget);
+                }
+            }
         }
     }
 
